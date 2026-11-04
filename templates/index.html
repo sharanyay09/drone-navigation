@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DroneNav AI</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+<style>
+:root{
+  --bg:#09090b; --panel:#111113; --card:#161618; --card2:#1c1c1f; --line:#26262b; --line2:#34343b;
+  --tx:#f4f4f5; --mut:#9a9aa5; --dim:#6b6b76;
+  --ac:#f97316; --ac2:#fb923c; --acbg:rgba(249,115,22,.12);
+  --ok:#34d399; --okbg:rgba(52,211,153,.12); --warn:#fbbf24; --warnbg:rgba(251,191,36,.12); --bad:#f87171; --badbg:rgba(248,113,113,.14);
+  --r:14px; --onac:#1a0a00;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--tx);font:14px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;
+  background-image:radial-gradient(900px 400px at 85% -10%,rgba(249,115,22,.07),transparent 60%)}
+svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* sidebar */
+aside{width:230px;background:var(--panel);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 22px;font-weight:700;font-size:16px;letter-spacing:.2px}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#fb923c,#ea580c);display:grid;place-items:center;color:var(--onac);box-shadow:0 6px 20px rgba(249,115,22,.35)}
+.brand small{display:block;font-weight:500;color:var(--dim);font-size:11px;letter-spacing:.4px}
+aside a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--mut);cursor:pointer;transition:.15s;user-select:none}
+aside a:hover{background:var(--card);color:var(--tx)}
+aside a.on{background:var(--acbg);color:var(--ac2);box-shadow:inset 2px 0 0 var(--ac)}
+.side-foot{margin-top:auto;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:12px;color:var(--mut)}
+.side-foot b{color:var(--tx);display:block;font-size:13px;margin-bottom:2px}
+
+/* main */
+main{flex:1;min-width:0;padding:24px 28px 40px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+header h2{margin:0;font-size:22px;letter-spacing:-.3px;margin-right:auto}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;border:1px solid var(--line2);background:var(--card);font-size:12.5px;color:var(--mut)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.dot.live{background:var(--ok);box-shadow:0 0 0 0 rgba(52,211,153,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+select,input[type=number]{background:var(--card);color:var(--tx);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;font:inherit;outline:none}
+select:focus,input:focus{border-color:var(--ac)}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:3px}
+.seg button{background:none;border:0;color:var(--mut);padding:6px 12px;border-radius:8px;cursor:pointer;font:inherit}
+.seg button.on{background:var(--ac);color:var(--onac);font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--ac);color:var(--onac);border:0;border-radius:10px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer;transition:.15s}
+.btn:hover{background:var(--ac2);transform:translateY(-1px)}
+.btn.ghost{background:var(--card);color:var(--tx);border:1px solid var(--line2);font-weight:500}
+.btn.ghost:hover{background:var(--card2)}
+.v{display:none;animation:fade .25s}.v.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* cards */
+.g{display:grid;gap:16px}
+.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.split{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}
+.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.c h3{margin:0 0 14px;font-size:13px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.7px}
+.kpi{display:flex;gap:14px;align-items:center}
+.ico{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--acbg);color:var(--ac2)}
+.ico.ok{background:var(--okbg);color:var(--ok)}.ico.warn{background:var(--warnbg);color:var(--warn)}.ico.bad{background:var(--badbg);color:var(--bad)}
+.kpi .l{color:var(--mut);font-size:12.5px}.kpi .n{font-size:26px;font-weight:700;letter-spacing:-.5px;line-height:1.15}
+.kpi .n small{font-size:13px;color:var(--dim);font-weight:500}
+
+/* video */
+.stage{position:relative;aspect-ratio:4/3;background:#000;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.stage img{width:100%;height:100%;object-fit:contain;display:none}
+.stage.has img{display:block}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--mut);text-align:center;padding:20px;
+  background:repeating-linear-gradient(45deg,#0b0b0d,#0b0b0d 14px,#0e0e11 14px,#0e0e11 28px)}
+.stage.has .empty{display:none}
+.empty .ring{width:64px;height:64px;border-radius:50%;border:1px dashed var(--line2);display:grid;place-items:center;color:var(--ac2)}
+.zones{position:absolute;inset:0;display:none;pointer-events:none}
+.stage.has .zones{display:flex}
+.zones span{flex:1;border-right:1px dashed rgba(255,255,255,.14);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;font-size:10.5px;letter-spacing:1px;color:rgba(255,255,255,.35)}
+.zones span:last-child{border:0}
+.hud{position:absolute;top:10px;left:10px;right:10px;display:none;justify-content:space-between;pointer-events:none}
+.stage.has .hud{display:flex}
+.chip{background:rgba(9,9,11,.72);backdrop-filter:blur(6px);border:1px solid var(--line2);border-radius:999px;padding:5px 11px;font-size:12px;color:var(--tx)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.file{position:relative;overflow:hidden}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* command pad */
+.pad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,64px);gap:8px;max-width:300px;margin:6px auto 4px}
+.pad div{border:1px solid var(--line2);border-radius:12px;display:grid;place-items:center;color:var(--dim);background:var(--card2);transition:.18s}
+.pad div svg{width:26px;height:26px}
+.pad .f{grid-column:2}.pad .l{grid-column:1;grid-row:2}.pad .s{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+.pad .act-ok{background:var(--okbg);color:var(--ok);border-color:var(--ok)}
+.pad .act-warn{background:var(--warnbg);color:var(--warn);border-color:var(--warn)}
+.pad .act-bad{background:var(--badbg);color:var(--bad);border-color:var(--bad);box-shadow:0 0 24px rgba(248,113,113,.25)}
+.cmd{text-align:center;font-size:34px;font-weight:800;letter-spacing:-.5px;margin:12px 0 2px}
+.sub{text-align:center;color:var(--dim);font-size:12.5px}
+
+/* zone bars */
+.zbars{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:end;height:120px}
+.zb{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.zb .col{width:100%;flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;position:relative;overflow:hidden}
+.zb .col i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,var(--ac2),var(--ac));transition:height .3s}
+.zb span{font-size:12px;color:var(--mut)}
+.thr{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.thr label{display:flex;justify-content:space-between;font-size:13px;color:var(--mut)}
+.thr label b{color:var(--tx);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--ac)}
+
+/* tables */
+.tw{overflow:auto;max-height:520px}
+table{width:100%;border-collapse:collapse}
+th{position:sticky;top:0;background:var(--card);text-align:left;color:var(--dim);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.6px;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.b-ok{background:var(--okbg);color:var(--ok)}.b-warn{background:var(--warnbg);color:var(--warn)}.b-bad{background:var(--badbg);color:var(--bad)}.b-ac{background:var(--acbg);color:var(--ac2)}
+.none{color:var(--dim);text-align:center;padding:26px 0}
+.risk{display:inline-block;width:46px;height:6px;border-radius:4px;background:var(--line2);vertical-align:middle;margin-right:8px;overflow:hidden}
+.risk i{display:block;height:100%;background:var(--ac)}
+.chartbox{position:relative;height:320px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--bad);color:var(--tx);padding:12px 16px;border-radius:12px;max-width:360px;display:none;z-index:9;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+
+@media (max-width:1100px){.k4{grid-template-columns:repeat(2,minmax(0,1fr))}.split,.two{grid-template-columns:1fr}}
+@media (max-width:820px){
+  body{flex-direction:column}
+  aside{width:100%;height:auto;position:sticky;z-index:5;flex-direction:row;overflow-x:auto;padding:10px;gap:6px;border-right:0;border-bottom:1px solid var(--line)}
+  .brand,.side-foot{display:none}
+  aside a{white-space:nowrap;padding:8px 12px}
+  aside a.on{box-shadow:inset 0 -2px 0 var(--ac)}
+  main{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.5"/></symbol>
+  <symbol id="i-nav" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-cmp" viewBox="0 0 24 24"><path d="M6 20V10M12 20V4M18 20v-7"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+  <symbol id="i-drone" viewBox="0 0 24 24"><circle cx="5" cy="5" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/><path d="M7 7l2 2M17 7l-2 2M7 17l2-2M17 17l-2-2"/></symbol>
+</svg>
+
+<aside>
+  <div class="brand"><div class="logo"><svg class="i"><use href="#i-drone"/></svg></div><div>DroneNav AI<small>OBSTACLE NAVIGATION</small></div></div>
+  <a class="on" data-v="dash" data-t="Dashboard"><svg class="i"><use href="#i-grid"/></svg>Dashboard</a>
+  <a data-v="live" data-t="Live Feed"><svg class="i"><use href="#i-cam"/></svg>Live Feed</a>
+  <a data-v="nav" data-t="Navigation"><svg class="i"><use href="#i-nav"/></svg>Navigation</a>
+  <a data-v="ana" data-t="Analytics"><svg class="i"><use href="#i-chart"/></svg>Analytics</a>
+  <a data-v="his" data-t="Detection History"><svg class="i"><use href="#i-clock"/></svg>History</a>
+  <a data-v="mod" data-t="Model Comparison"><svg class="i"><use href="#i-cmp"/></svg>Model Comparison</a>
+  <div class="side-foot"><b id="sfModel">yolov8n</b><span id="sfMode">adaptive mode</span></div>
+</aside>
+
+<main>
+  <header>
+    <h2 id="title">Dashboard</h2>
+    <span class="pill"><span class="dot" id="liveDot"></span><span id="liveTxt">Camera off</span></span>
+    <select id="modelSel" onchange="setm(this.value)" title="Detection model">
+      {% for m in models %}<option value="{{m}}">{{m}}</option>{% endfor %}
+    </select>
+    <div class="seg" title="Navigation mode">
+      <button class="ob" data-o="adaptive" onclick="setmode('adaptive')">Adaptive</button>
+      <button class="ob" data-o="baseline" onclick="setmode('baseline')">Baseline</button>
+    </div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <section class="v on" id="dash">
+    <div class="g k4">
+      <div class="c kpi"><div class="ico ok"><svg class="i"><use href="#i-bolt"/></svg></div><div><div class="l">System status</div><div class="n" style="font-size:20px;color:var(--ok)">Online</div></div></div>
+      <div class="c kpi"><div class="ico"><svg class="i"><use href="#i-eye"/></svg></div><div><div class="l">Total detections</div><div class="n" id="total">0</div></div></div>
+      <div class="c kpi"><div class="ico warn"><svg class="i"><use href="#i-alert"/></svg></div><div><div class="l">Obstacle alerts</div><div class="n" id="alerts">0</div></div></div>
+      <div class="c kpi"><div class="ico"><svg class="i"><use href="#i-chip"/></svg></div><div><div class="l">Speed</div><div class="n"><span id="fps0">0</span> <small>FPS</small></div></div></div>
+    </div>
+    <div class="g split" style="margin-top:16px">
+      <div class="c"><h3>Recent decisions</h3><div class="tw" style="max-height:330px"><table><thead><tr><th>Time</th><th>Decision</th><th>Objects</th><th>Latency</th></tr></thead><tbody id="recent"></tbody></table></div></div>
+      <div class="c"><h3>Navigation command</h3>
+        <div class="pad" id="pad0"><div class="f"><svg class="i"><use href="#i-up"/></svg></div><div class="l"><svg class="i"><use href="#i-left"/></svg></div><div class="s"><svg class="i"><use href="#i-stop"/></svg></div><div class="r"><svg class="i"><use href="#i-right"/></svg></div></div>
+        <div class="cmd" id="dec0">-</div><div class="sub"><span id="mname">-</span> · <span id="lat0">0</span> ms per frame</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE -->
+  <section class="v" id="live">
+    <div class="g split">
+      <div class="c">
+        <div class="stage" id="stage">
+          <img id="feed" alt="live feed">
+          <div class="empty"><div class="ring"><svg class="i" style="width:28px;height:28px"><use href="#i-cam"/></svg></div>
+            <div><b style="color:var(--tx);font-size:15px">No video yet</b><br>Start your camera or upload a clip to begin detecting obstacles.</div></div>
+          <div class="zones"><span>LEFT</span><span>CENTRE</span><span>RIGHT</span></div>
+          <div class="hud"><span class="chip" id="hudCmd">-</span><span class="chip"><span id="fps1h">0</span> FPS · <span id="lat1h">0</span> ms</span></div>
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="startCam()"><svg class="i"><use href="#i-cam"/></svg>Start camera</button>
+          <button class="btn ghost" onclick="stopCam()">Stop</button>
+          <div class="btn ghost file">Upload video<input type="file" id="vf" accept="video/*" onchange="up(this)"></div>
+        </div>
+      </div>
+      <div class="g" style="align-content:start">
+        <div class="c"><h3>Command</h3>
+          <div class="pad" id="pad1"><div class="f"><svg class="i"><use href="#i-up"/></svg></div><div class="l"><svg class="i"><use href="#i-left"/></svg></div><div class="s"><svg class="i"><use href="#i-stop"/></svg></div><div class="r"><svg class="i"><use href="#i-right"/></svg></div></div>
+          <div class="cmd" id="dec1" style="font-size:26px">-</div>
+        </div>
+        <div class="c"><h3>Detected obstacles</h3><div class="tw" style="max-height:260px"><table><thead><tr><th>Object</th><th>Conf</th><th>Zone</th><th>Risk</th></tr></thead><tbody id="dt"></tbody></table></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NAVIGATION -->
+  <section class="v" id="nav">
+    <div class="g two">
+      <div class="c"><h3>Live command</h3>
+        <div class="pad" id="pad2" style="max-width:340px"><div class="f"><svg class="i"><use href="#i-up"/></svg></div><div class="l"><svg class="i"><use href="#i-left"/></svg></div><div class="s"><svg class="i"><use href="#i-stop"/></svg></div><div class="r"><svg class="i"><use href="#i-right"/></svg></div></div>
+        <div class="cmd" id="dec2">-</div>
+        <div class="sub">risk = confidence × proximity × centre weight</div>
+      </div>
+      <div class="c"><h3>Zone risk</h3>
+        <div class="zbars">
+          <div class="zb"><div class="col"><i id="zl"></i></div><span>Left <b id="zlv">0</b></span></div>
+          <div class="zb"><div class="col"><i id="zc"></i></div><span>Centre <b id="zcv">0</b></span></div>
+          <div class="zb"><div class="col"><i id="zr"></i></div><span>Right <b id="zrv">0</b></span></div>
+        </div>
+        <h3 style="margin-top:22px">Thresholds</h3>
+        <div class="thr">
+          <div><label>Warn at <b id="warnv">0.25</b></label><input type="range" id="warn" min="0.05" max="1.5" step="0.05" value="0.25" oninput="cfg()"></div>
+          <div><label>Stop at <b id="stopv">0.60</b></label><input type="range" id="stop" min="0.1" max="2" step="0.05" value="0.6" oninput="cfg()"></div>
+          <div><label>Min confidence <b id="confv">0.50</b></label><input type="range" id="conf" min="0.1" max="0.9" step="0.05" value="0.5" oninput="cfg()"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section class="v" id="ana">
+    <div class="g k4">
+      <div class="c kpi"><div class="ico ok"><svg class="i"><use href="#i-bolt"/></svg></div><div><div class="l">FPS</div><div class="n" id="fps2">0</div></div></div>
+      <div class="c kpi"><div class="ico"><svg class="i"><use href="#i-clock"/></svg></div><div><div class="l">Latency</div><div class="n"><span id="lat2">0</span> <small>ms</small></div></div></div>
+      <div class="c kpi"><div class="ico warn"><svg class="i"><use href="#i-chip"/></svg></div><div><div class="l">CPU</div><div class="n"><span id="cpu">0</span> <small>%</small></div></div></div>
+      <div class="c kpi"><div class="ico"><svg class="i"><use href="#i-eye"/></svg></div><div><div class="l">Model</div><div class="n" id="mname2" style="font-size:20px">-</div></div></div>
+    </div>
+    <div class="c" style="margin-top:16px"><h3>Performance (last 60 s)</h3><div class="chartbox"><canvas id="ch"></canvas></div></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="v" id="his">
+    <div class="c"><h3>Detection history <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--dim)">· latest 100 · logged once per second</span></h3>
+      <div class="tw"><table><thead><tr><th>Time</th><th>Model · mode</th><th>Decision</th><th>Objects</th><th>Centre risk</th><th>Latency</th></tr></thead><tbody id="ht"></tbody></table></div></div>
+  </section>
+
+  <!-- MODELS -->
+  <section class="v" id="mod">
+    <div class="c"><h3>How to compare</h3>
+      <div style="color:var(--mut)">Pick a model and mode at the top, run the <b style="color:var(--tx)">same video</b> for about 30 seconds, then switch and repeat. Each combination gets a row below.</div></div>
+    <div class="g split" style="margin-top:16px">
+      <div class="c"><h3>Results</h3><div class="tw"><table><thead><tr><th>Model · mode</th><th>Frames</th><th>Latency</th><th>FPS</th><th>Avg conf</th><th>Dets / frame</th><th>Stop rate</th></tr></thead><tbody id="mt"></tbody></table></div></div>
+      <div class="c"><h3>Latency vs FPS</h3><div class="chartbox" style="height:280px"><canvas id="mc"></canvas></div></div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let ch,mc,camOn=false,lastSrc=null;
+const TITLES={dash:'Dashboard',live:'Live Feed',nav:'Navigation',ana:'Analytics',his:'Detection History',mod:'Model Comparison'};
+
+/* nav */
+document.querySelectorAll('aside a').forEach(a=>a.onclick=()=>{
+  document.querySelectorAll('aside a,.v').forEach(e=>e.classList.remove('on'));
+  a.classList.add('on');$(a.dataset.v).classList.add('on');$('title').textContent=TITLES[a.dataset.v];
+  if(a.dataset.v==='ana'&&ch)ch.resize(); if(a.dataset.v==='mod'&&mc)mc.resize();
+});
+
+/* helpers */
+const CMD={'Move Forward':{t:'Forward',c:'ok',p:'f'},'Stop':{t:'Stop',c:'bad',p:'s'},'Move Left':{t:'Move left',c:'warn',p:'l'},'Move Right':{t:'Move right',c:'warn',p:'r'}};
+const COLS={ok:'var(--ok)',warn:'var(--warn)',bad:'var(--bad)'};
+function badge(cmd){const m=CMD[cmd]||CMD['Move Forward'];return `<span class="badge b-${m.c}">${m.t}</span>`}
+function setPad(id,cmd){const m=CMD[cmd];document.querySelectorAll('#'+id+' div').forEach(d=>d.className=d.className.replace(/act-\w+/g,'').trim());
+  if(m){const el=document.querySelector('#'+id+' .'+m.p);if(el)el.classList.add('act-'+m.c)}}
+function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',6000)}
+const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+const f2=x=>(+x).toFixed(2);
+
+/* controls */
+const setm=m=>post('/api/model',{model:m});
+const setmode=m=>post('/api/mode',{mode:m});
+function cfg(){
+  $('warnv').textContent=f2($('warn').value);$('stopv').textContent=f2($('stop').value);$('confv').textContent=f2($('conf').value);
+  post('/api/config',{warn:+$('warn').value,stop:+$('stop').value,conf:+$('conf').value});
+}
+
+/* camera */
+function showFeed(on){$('stage').classList.toggle('has',on);$('liveDot').classList.toggle('live',on);$('liveTxt').textContent=on?'Live':'Camera off'}
+async function startCam(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Camera needs http://localhost:5000 or https. Open the site at localhost, not an IP address.');return}
+  try{
+    stopCam();
+    $('cam').srcObject=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+    await new Promise(r=>{const v=$('cam');if(v.readyState>=2&&v.videoWidth)r();else v.onloadeddata=r});
+    await $('cam').play();camOn=true;showFeed(true);document.querySelector('aside a[data-v=live]').click();loop();
+  }catch(e){toast('Camera blocked or not found: '+e.message)}
+}
+function stopCam(){camOn=false;const s=$('cam').srcObject;if(s)s.getTracks().forEach(t=>t.stop());$('cam').srcObject=null;if($('stage').dataset.mode==='cam'){showFeed(false)}}
+async function loop(){
+  $('stage').dataset.mode='cam';
+  while(camOn){
+    const c=$('cv');c.getContext('2d').drawImage($('cam'),0,0,640,480);
+    const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.7));
+    try{const r=await fetch('/api/frame',{method:'POST',body:b}),old=$('feed').src;
+      $('feed').src=URL.createObjectURL(await r.blob());if(old.startsWith('blob:'))URL.revokeObjectURL(old)}
+    catch(e){await new Promise(r=>setTimeout(r,500))}
+  }
+}
+function up(i){
+  if(!i.files[0])return;const f=new FormData();f.append('file',i.files[0]);
+  camOn=false;const s=$('cam').srcObject;if(s)s.getTracks().forEach(t=>t.stop());
+  fetch('/api/source',{method:'POST',body:f}).then(()=>{$('stage').dataset.mode='file';$('feed').src='/video?'+Date.now();showFeed(true);document.querySelector('aside a[data-v=live]').click()});
+}
+
+/* charts */
+Chart.defaults.color='#9a9aa5';Chart.defaults.borderColor='#26262b';Chart.defaults.font.family='Inter,system-ui,sans-serif';
+function ds(label,color,axis){return{label,data:[],borderColor:color,backgroundColor:color+'22',yAxisID:axis,tension:.35,pointRadius:0,borderWidth:2,fill:false}}
+function initCharts(){
+  ch=new Chart($('ch'),{type:'line',data:{labels:[],datasets:[ds('Latency (ms)','#f97316','y'),ds('CPU (%)','#fbbf24','y'),ds('FPS','#34d399','y1')]},
+    options:{animation:false,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,boxWidth:8}}},
+      scales:{x:{display:false},y:{position:'left',beginAtZero:true,title:{display:true,text:'ms / %'}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'FPS'}}}}});
+  mc=new Chart($('mc'),{type:'bar',data:{labels:[],datasets:[{label:'Latency (ms)',data:[],backgroundColor:'#f97316',borderRadius:6,yAxisID:'y'},{label:'FPS',data:[],backgroundColor:'#34d399',borderRadius:6,yAxisID:'y1'}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{labels:{usePointStyle:true,boxWidth:8}}},scales:{y:{beginAtZero:true,position:'left'},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false}}}}});
+}
+
+/* live polling */
+async function tick(){
+  let s;try{s=await (await fetch('/api/stats')).json()}catch(e){return}
+  const m=CMD[s.decision]||CMD['Move Forward'];
+  $('total').textContent=s.total;$('alerts').textContent=s.alerts;
+  ['fps0','fps1h','fps2'].forEach(i=>$(i).textContent=s.fps);['lat0','lat1h','lat2'].forEach(i=>$(i).textContent=s.latency);
+  $('cpu').textContent=s.cpu;$('mname').textContent=$('mname2').textContent=$('sfModel').textContent=s.model;$('sfMode').textContent=s.mode+' mode';
+  ['dec0','dec1','dec2'].forEach(i=>{$(i).textContent=m.t;$(i).style.color=COLS[m.c]});$('hudCmd').textContent=m.t.toUpperCase();$('hudCmd').style.color=COLS[m.c];
+  ['pad0','pad1','pad2'].forEach(p=>setPad(p,s.decision));
+  const mx=1.5;[['left','zl'],['center','zc'],['right','zr']].forEach(([k,i])=>{$(i).style.height=Math.min(100,s.zones[k]/mx*100)+'%';$(i+'v').textContent=f2(s.zones[k])});
+  $('dt').innerHTML=s.dets.length?s.dets.map(d=>`<tr><td>${d.label}</td><td>${f2(d.conf)}</td><td><span class="badge b-ac">${d.zone}</span></td><td><span class="risk"><i style="width:${Math.min(100,d.risk*100)}%"></i></span>${f2(d.risk)}</td></tr>`).join(''):'<tr><td colspan="4" class="none">No obstacles detected</td></tr>';
+  if(modelSelFix!==s.model){$('modelSel').value=s.model;modelSelFix=s.model}
+  document.querySelectorAll('.ob').forEach(b=>b.classList.toggle('on',b.dataset.o==s.mode));
+  if(!cfgInit&&s.cfg){cfgInit=true;$('warn').value=s.cfg.warn;$('stop').value=s.cfg.stop;$('conf').value=s.cfg.conf;
+    $('warnv').textContent=f2(s.cfg.warn);$('stopv').textContent=f2(s.cfg.stop);$('confv').textContent=f2(s.cfg.conf)}
+  const L=s.series.map((_,i)=>i),D=k=>s.series.map(x=>x[k]);
+  ch.data.labels=L;ch.data.datasets[0].data=D('lat');ch.data.datasets[1].data=D('cpu');ch.data.datasets[2].data=D('fps');ch.update('none');
+}
+let modelSelFix=null,cfgInit=false;
+
+async function slow(){
+  let h,m;try{h=await (await fetch('/api/history')).json();m=await (await fetch('/api/models')).json()}catch(e){return}
+  $('ht').innerHTML=h.length?h.map(r=>`<tr><td>${r.ts}</td><td>${r.model}</td><td>${badge(r.decision)}</td><td>${r.n}</td><td>${f2(r.risk)}</td><td>${Math.round(r.latency)} ms</td></tr>`).join(''):'<tr><td colspan="6" class="none">Nothing logged yet. Start the camera.</td></tr>';
+  $('recent').innerHTML=h.length?h.slice(0,8).map(r=>`<tr><td>${r.ts}</td><td>${badge(r.decision)}</td><td>${r.n}</td><td>${Math.round(r.latency)} ms</td></tr>`).join(''):'<tr><td colspan="4" class="none">Nothing logged yet. Start the camera.</td></tr>';
+  const k=Object.keys(m);
+  const best=k.length?k.reduce((a,b)=>m[a].latency<=m[b].latency?a:b):null;
+  $('mt').innerHTML=k.length?k.map(n=>{const x=m[n];return `<tr><td><b>${n.replace(' | ',' · ')}</b>${n===best&&k.length>1?' <span class="badge b-ok">fastest</span>':''}</td><td>${x.frames}</td><td>${x.latency} ms</td><td>${x.fps}</td><td>${f2(x.avg_conf)}</td><td>${x.dets_per_frame}</td><td>${(x.stop_rate*100).toFixed(1)}%</td></tr>`}).join(''):'<tr><td colspan="7" class="none">No runs yet. Start the camera or upload a video.</td></tr>';
+  mc.data.labels=k.map(n=>n.replace(' | ',' · '));mc.data.datasets[0].data=k.map(n=>m[n].latency);mc.data.datasets[1].data=k.map(n=>m[n].fps);mc.update();
+}
+
+
+initCharts();setInterval(tick,700);setInterval(slow,3000);tick();slow();
+</script>
+<video id="cam" autoplay playsinline muted style="position:absolute;width:2px;height:2px;opacity:0;pointer-events:none"></video>
+<canvas id="cv" width="640" height="480" style="display:none"></canvas>
+</body>
+</html>
